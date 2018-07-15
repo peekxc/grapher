@@ -1,0 +1,23 @@
+Package: grapher
+Type: Package
+Title: Create interactive network visualizations with Grapher
+Version: 1.0
+Date: 2018-07-04
+Author: Matt Piekenbrock
+Maintainer: Matt Piekenbrock <matt.piekenbrock@gmail.com>
+Description: Based on the 'grapher.js' library by Ayasdi, 'grapher' provides an extensive API for 
+  visualizing and interacting with WebGL-accelerated force-directed graphs. Provides additional 
+  support for the 'Mapper' package. 
+Encoding: UTF-8
+VignetteBuilder: knitr
+Imports:
+    htmltools (>= 0.2.6),
+    htmlwidgets (>= 0.6),
+    jsonlite,
+    magrittr,
+    methods,
+    rmarkdown,
+    shiny, 
+    igraph
+RoxygenNote: 6.0.1
+License: GPL-v3
