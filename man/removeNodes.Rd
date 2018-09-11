@@ -2,7 +2,15 @@
 % Please edit documentation in R/api.R
 \name{removeNodes}
 \alias{removeNodes}
-\title{Remove selected nodes.}
+\title{#' Generates the JSON configuration of a given grapher object. 
+#' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
+#' @export
+get_json_config <- function(id){
+  # if (!is(g, "grapher")){ stop("'get_json_config' expects a grapher object.") }
+  export <- list(id = id, method = "getGraph")
+  callJS()
+}
+Remove selected nodes.}
 \usage{
 removeNodes(id, node_ids)
 }
@@ -12,5 +20,13 @@ removeNodes(id, node_ids)
 \item{node_ids}{A vector of node ids to remove.}
 }
 \description{
+#' Generates the JSON configuration of a given grapher object. 
+#' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
+#' @export
+get_json_config <- function(id){
+  # if (!is(g, "grapher")){ stop("'get_json_config' expects a grapher object.") }
+  export <- list(id = id, method = "getGraph")
+  callJS()
+}
 Remove selected nodes.
 }

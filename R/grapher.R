@@ -1,5 +1,5 @@
 #' Grapher
-#' @description Given a adjacency matrix, or mapper reference object, constructs an interactive grapher htmlwidget.
+#' @description Given a adjacency matrix or edgelist, constructs an interactive grapher htmlwidget.
 #' @author Matt Piekenbrock
 #' @import htmlwidgets
 #' @importFrom magrittr %>%
@@ -11,9 +11,9 @@ grapher <- function(x){
     json_config <- getDefaultJsonConfig(igraph::graph_from_adjacency_matrix(x, mode = "undirected", add.colnames = NA))
   } else if (is.matrix(x) && dim(x)[[2]] == 2){
     json_config <- getDefaultJsonConfig(igraph::graph_from_edgelist(x, directed = FALSE))
-  } else if (any(c("MapperRef", "Mapper") %in% class(x))){
-    json_config <- getDefaultMapperConfig(x)
-  } else { stop("'grapher' can only handle adjacency matrices or 'MapperRef' objects.") }
+  } else if (is.list(x) && all(c("nodes", "links") %in% names(x))) {
+    json_config <- x   
+  } else { stop("'grapher' can only handle adjacency matrices or edgelists.") }
   createWidget(jsonlite::toJSON(json_config))
 }
 

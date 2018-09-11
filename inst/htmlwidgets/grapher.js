@@ -316,6 +316,18 @@ HTMLWidgets.widget({
 			},
 
       // Widget API Functions ===========================
+      updateGrapherNodes: function(params){
+        console.log("Updating nodes...");
+        console.log(params);
+        //console.log(params.net);
+        //sub_network = params.net;
+  			//sub_network.links.forEach(function (d) { d.source = network.nodes[d.from]; d.target = network.nodes[d.to]; });
+  			//sub_network.nodes.forEach(function (n) { n.x = n.x * width; n.y = n.y * height; });
+        //_.forEach(sub_network.nodes, function(node, index){ 
+        //  grapher.updateNode(params.node_ids[index], true);
+        //});
+        //grapher.render();
+      },
       updateNodeColor: function(params){
         console.log("Updating node color attempt #2")
         // console.log(params);

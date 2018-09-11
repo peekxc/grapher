@@ -7,7 +7,7 @@
 grapher(x)
 }
 \description{
-Given a adjacency matrix, or mapper reference object, constructs an interactive grapher htmlwidget.
+Given a adjacency matrix or edgelist, constructs an interactive grapher htmlwidget.
 }
 \author{
 Matt Piekenbrock

@@ -60,7 +60,7 @@ callJS <- function() {
 getDefaultJsonConfig <- function(network = NULL){
 
   ## If no network was given, return a blank configuration
-  if (missing(network)){ return(list(nodes = data.frame(x=0, y=0, r=1, color = rgb(0, 0, 0, 1)), links = data.frame(from=0, to=0, color=rgb(0, 0, 0)))) }
+  if (missing(network)){ return(list(nodes = data.frame(x=0, y=0, r=5L, color = rgb(0, 0, 0)), links = data.frame(from=0, to=0, color=rgb(0, 0, 0)))) }
   
   ## Create the configuration based on the adjacency matrix
   json_config <- list()
@@ -81,51 +81,15 @@ getDefaultJsonConfig <- function(network = NULL){
   return(json_config)
 }
 
-## Creates a mapper JSON configuration with nice defaults
-getDefaultMapperConfig = function(mapper_obj){
-  ## Create mapper defaults
-  json_config <- list()
-  rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
-  if ("MapperRef" %in% class(mapper_obj)){ 
-    ## Color nodes and edges by a default rainbow palette
-    agg_node_val <- sapply(sapply(mapper_obj$G$nodes, function(n_idx){ apply(as.matrix(mapper_obj$cover$filter_values[n_idx,]), 1, mean)}), mean)
-    binned_idx <- cut(agg_node_val, breaks = 100, labels = F)
-    
-    ## Make defaults 
-    graph <- igraph::graph_from_adjacency_matrix(mapper_obj$G$adjacency, mode = "undirected", add.colnames = NA) 
-    node_sizes <- sapply(mapper_obj$G$nodes, length) 
-    node_default_colors <- rbw_pal[binned_idx]
-  } else if ("Mapper" %in% class(mapper_obj)){
-    graph <- igraph::graph_from_adjacency_matrix(mapper_obj$adjacency, mode = "undirected", add.colnames = NA)
-    node_sizes <- sapply(mapper_obj$nodes, length)
-    node_default_colors <- rep(rgb(0, 0, 0, 1), length(mapper_obj$nodes))
-  } else { stop("'getDefaultMapperConfig' expects a Mapper object.") }
-  
-  ## Create the nodes. By default, color them on a rainbow palette according to their mean filter value.
-  if (length(igraph::V(graph)) > 0){
-    node_radii <- (15L - 10L)*normalize(log(node_sizes)) + 10L
-    node_xy <- apply(igraph::layout.auto(graph), 2, normalize)
-    json_config$nodes <- data.frame(x=node_xy[, 1], y=node_xy[, 2], r=node_radii,
-                                     color=node_default_colors,
-                                     index = 0:(length(node_sizes)-1))
-  }
-  
-  ## Create the links w/ a similar coloring scheme.
-  if (length(igraph::E(graph)) > 0){
-    el <- igraph::as_edgelist(graph, names = FALSE)
-    if ("MapperRef" %in% class(mapper_obj)){
-      edge_binned_idx <- apply(el, 1, function(node_ids) { (binned_idx[node_ids[1]] + binned_idx[node_ids[2]])/2 })
-      edge_links <- cbind(as.data.frame(apply(el, 2, as.integer) - 1L), substr(rbw_pal[edge_binned_idx], start = 0, stop = 7))
-    } else {
-      edge_links <- cbind(as.data.frame(apply(el, 2, as.integer) - 1L), rgb(0, 0, 0))
-    }
-    json_config$links <- structure(edge_links, names = c("from", "to", "color"))
-  }
-  
-  ## Return the configuration
-  return(json_config) 
-}
-
+## This is not possible w/o a shiny context---
+#' #' Generates the JSON configuration of a given grapher object. 
+#' #' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
+#' #' @export
+#' get_json_config <- function(id){
+#'   # if (!is(g, "grapher")){ stop("'get_json_config' expects a grapher object.") }
+#'   export <- list(id = id, method = "getGraph")
+#'   callJS()
+#' }
 
 #' Remove selected nodes. 
 #' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
@@ -160,16 +124,41 @@ removeEdges = function(id, v1, v2){
   callJS()
 }
 
+#' hex2rgba
+#' Converts Hexadecimal colors (with or w/o transparency) to rgba/rgb strings. 
+#' @export
+hex2rgba <- function(colors){
+  hex_size <- nchar(colors[[1]])
+  stopifnot(hex_size %in% c(7, 9))
+  use_alpha <- (hex_size == 9L)
+  if (use_alpha){
+    rgb_colors <- col2rgb(colors, alpha = TRUE)
+    color <- apply(rgb_colors, 2, function(rgba) { sprintf("rgba(%d,%d,%d,%.2f)", rgba[1], rgba[2], rgba[3], rgba[4]) })
+    return(color)
+  } else {
+    rgb_colors <- col2rgb(colors, alpha = FALSE)
+    color <- apply(rgb_colors, 2, function(rgb) { sprintf("rgb(%d,%d,%d)", rgb[1], rgb[2], rgb[3]) })
+    return(color)
+  }
+}
 
+#' Update specific nodes. 
+#' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
+#' @param node_ids A vector of node ids to update. 
+#' @param net_config A json 
+#' @export
+updateGrapherNodes <- function(id, node_ids, net_config){
+  export <- list(id = id, method = "updateGrapherNodes", node_ids = node_ids, net = net_config)
+  callJS()
+}
 
 #' Update the node colors. 
 #' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
 #' @param color A vector of hexadecimal color codes. Transparency values supported. 
 #' @export
-updateNodeColor = function(id, color){
-  rgb_colors <- col2rgb(color, alpha = TRUE)
-  color <- apply(rgb_colors, 2, function(rgba) { sprintf("rgba(%d,%d,%d,%.2f)", rgba[1], rgba[2], rgba[3], rgba[4]) })
-  export <- list(id = id, method = "updateNodeColor", color = color)
+updateNodeColor <- function(id, color){
+  color_strings <- hex2rgba(color)
+  export <- list(id = id, method = "updateNodeColor", color = color_strings)
   callJS()
 }
 
