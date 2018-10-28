@@ -11,7 +11,7 @@ grapher <- function(x){
     json_config <- getDefaultJsonConfig(igraph::graph_from_adjacency_matrix(x, mode = "undirected", add.colnames = NA))
   } else if (is.matrix(x) && dim(x)[[2]] == 2){
     json_config <- getDefaultJsonConfig(igraph::graph_from_edgelist(x, directed = FALSE))
-  } else if (is.list(x) && all(c("nodes", "links") %in% names(x))) {
+  } else if (is.list(x) && any(c("nodes", "links") %in% names(x))) {
     json_config <- x   
   } else { stop("'grapher' can only handle adjacency matrices or edgelists.") }
   createWidget(jsonlite::toJSON(json_config))

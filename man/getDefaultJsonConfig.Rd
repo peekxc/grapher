@@ -20,8 +20,8 @@ The 'grapher.js' library uses a D3-like network representation with the followin
 }
 Thus, a valid JSON configuration includes minimal set information needed to create a grapher network.
 This function returns a list with the following members:
- \code{nodes} := a data.frame w/ members 'x', 'y', 'r', and optionally 'color'
- \code{edges} := a data.frame w/ members 'from', 'to', and optionally 'color'
+\code{nodes} := a data.frame w/ members 'x', 'y', 'r', and optionally 'color'
+\code{edges} := a data.frame w/ members 'from', 'to', and optionally 'color'
 If customization is needed the JSON network object sent to the grapher htmlwidgets, these values can be changed
 directly before passing to grapher. This may be useful in the situation where additional data is associated with 
 the network is needed on the JavaScript end, i.e. extra node or edge attributes. Alternatively, 

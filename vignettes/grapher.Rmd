@@ -1,0 +1,151 @@
+---
+title: "Introduction to Grapher"
+output: html_notebook
+---
+
+```{r setup, include = FALSE}
+library("igraph")
+library("grapher")
+```
+## Overview
+
+The `grapher` package provides and extends an R-interface to the open-source [grapher library]() by Ayasdi. 
+It supports interactive [WebGL](https://www.khronos.org/webgl/)-accelerated 2D network plotting and interaction via the [htmlwidgets framework](https://github.com/ramnathv/htmlwidgets). 
+
+## Usage
+
+To create a grapher instance, pass in one of the following: 
+  
+  1. An [igraph]() object 
+  2. An $n \times n$ symmetric adjacency matrix
+  3. An $n \times 2$ edgelist 
+  4. A [grapher configuration](?grapher::getDefaultJsonConfig)
+  
+Here's an example of how to create simple graph with 10 nodes. 
+```{r}
+require("igraph")
+n_nodes <- 10L
+G <- igraph::sample_grg(n_nodes, radius = 0)
+grapher(G)
+```
+
+The grapher instance itself encapsulates canvas-drawn htmlwidget that can be programmatically interacted with. You can left-click anywhere in the space to pan, or click an individual node to drag it. Zooming is also available via the [wheel input](https://developer.mozilla.org/en-US/docs/Web/API/GlobalEventHandlers/onwheel). 
+
+One such way of interacting with the widget is through method chaining via [magrittr pipes](https://magrittr.tidyverse.org/). For example, to update the node colors, the `updateNodeColor` accepts a vector of hexadecimal RGB or RGBa values with the same length as the number of nodes:
+```{r}
+{ light_red <- rgb(1, 0, 0, 0.5); light_green <- rgb(0, 1, 0, 0.5) }
+node_colors <- rep(c(light_red, light_green), times = n_nodes/2)
+grapher(G) %>% 
+  setNodeColor(color = node_colors)
+```
+
+Edge colors are updated synonomously. Unlike nodes, edge colors do not support transparancy values. 
+```{r}
+blue <- rgb(0, 0, 1); red <- rgb(1, 0, 0)
+node_colors <- rep(red, igraph::vcount(G))
+edge_colors <- rep(blue, igraph::ecount(G))
+grapher(G) %>% 
+  setNodeColor(color = node_colors) %>% 
+  setLinkColor(color = edge_colors)
+```
+
+By default, `grapher` instances have their layouts precomputed using igraph before being displayed in their 'static' positions. Alternatively, one can enable a [force-directed](https://en.wikipedia.org/wiki/Force-directed_graph_drawing) layout using [D3v4](https://d3js.org/) with some suitable default parameters via the `enableForce` option.    
+
+```{r}
+grapher(G) %>% enableForce() %>% center()
+```
+
+The package binds API calls directly with the widget instance, and provides reactive callbacks to work with [shiny](https://shiny.rstudio.com/), enabling more dynamic interactivity with the widget. 
+
+```{r}
+library(shiny)
+ui <- pageWithSidebar(
+  headerPanel("Simple shiny app with Grapher"),
+  sidebarPanel(
+    actionButton(inputId = "add_node", label = "Add node"), 
+    actionButton(inputId = "remove_node", label = "Remove node")
+  ),
+  ## The main canvas container holding the grapher
+  mainPanel( grapherOutput(outputId = "grapher", height = "100vh") )
+)
+
+server <- function(input, output, session) {
+  n <- igraph::vcount(G)
+  
+  ## Pass the htmlwidget to the canavs container via 'renderGrapher'
+  output$grapher <- renderGrapher({ grapher(G) %>% enableForce() })
+  
+  ## See ?getDefaultJsonConfig or ?insertNodes to understand the format grapher expects when inserting nodes
+  observeEvent(input$add_node, {
+    node_config <- data.frame(id=n, x=runif(1), y=runif(1), r=5, color="#000000")
+    n <<- n + 1
+    insertNodes("grapher", node_config)
+  })
+  observeEvent(input$remove_node, {
+    n <<- n - 1
+    removeNodes("grapher", n)
+  })
+}
+
+shinyApp(ui, server)
+```
+
+```{r, include = FALSE}
+# label_xy <- data.frame(label = 1:2, x = c(0.05, 0.95), y = c(0.5, 0.5))
+# node_labels <- c(rep(1, n_nodes/2), rep(2, n_nodes/2))
+# 
+# grapher(G) %>% 
+#   updateNodeColor(color = c(rep(rgb(1, 0, 0, 0.5), n_nodes/2), rep(rgb(0, 1, 0, 0.5), n_nodes/2))) %>% 
+#   splitByLabel(node_labels = node_labels, label_xy = label_xy) %>% 
+#   groupSingletons()
+# 
+# edge_colors <- apply(igraph::as_edgelist(G), 1, function(edge){ 
+#   if (edge[1] <= 25 && edge[2] <= 25){ rgb(1, 0, 0) } 
+#   else if (edge[1] > 25 && edge[2] > 25){ rgb(0, 1, 0) } 
+#   else { rgb(0, 0, 1) }
+# })
+# grapher(adjm) %>% 
+#   updateNodeColor(color = c(rep(rgb(1, 0, 0), n_nodes/2), rep(rgb(0, 1, 0), n_nodes/2))) %>% 
+#   updateEdgeColor(color = edge_colors) %>% 
+#   grapher:::logNetwork()
+# 
+# 
+# el <- igraph::as_edgelist(G) 
+# edge_types <- cbind(node_labels[el[, 1]], node_labels[el[, 2]])
+# internal_edges <- which(apply(edge_types, 1, function(e) e[1] == e[2]))
+# cross_edges <- which(apply(edge_types, 1, function(e) e[1] != e[2]))
+# 
+# grapher(G) %>% 
+#     updateNodeColor(color = c(rep(rgb(1, 0, 0, 0.5), n_nodes/2), rep(rgb(0, 1, 0, 0.5), n_nodes/2))) %>% 
+#     splitByLabel(node_labels = c(rep(1, n_nodes/2), rep(2, n_nodes/2)), label_xy = label_xy) %>% 
+#     removeEdges(v1 = el[cross_edges, 1], v2 = el[cross_edges, 2]) %>% 
+#     removeEdges(v1 = el[internal_edges, 1], v2 = el[internal_edges, 2]) %>% 
+#     addEdges(v1 = el[1, 1], v2 = el[1, 2], color = rgb(1, 0, 0))
+# 
+# 
+# grapher(G) %>% 
+#   updateNodeColor(color = c(rep(rgb(1, 0, 0, 0.5), n_nodes/2), rep(rgb(0, 1, 0, 0.5), n_nodes/2))) %>% 
+#   splitByLabel(node_labels = c(rep(1, n_nodes/2), rep(2, n_nodes/2)), label_xy = label_xy) %>% 
+#   addEdges(v1 = el[cross_edges, 1], v2 = el[cross_edges, 2], color = rgb(0, 0, 1))
+#   removeEdges(v1 = el[cross_edges, 1], v2 = el[cross_edges, 2]) %>% 
+#   removeEdges(v1 = el[internal_edges, 1], v2 = el[internal_edges, 2]) %>% 
+#   addEdges(v1 = el[cross_edges, 1], v2 = el[cross_edges, 2], color = rgb(0, 0, 1)) %>% 
+#   addEdges(v1 = el[1:5, 1], v2 = el[1:5, 2], color = rgb(0, 0, 1)) %>% 
+#   addEdges(v1 = el[6:10, 1], v2 = el[6:10, 2], color = rgb(0, 1, 0))
+#   grapher:::logNetwork()
+# 
+# 
+# net_config <-  grapher::getDefaultJsonConfig(G)
+# new_config <- net_config
+# new_config$nodes <- new_config$nodes[1,]
+# new_config$nodes$color <- rgb(0, 0, 1)
+# new_config$links <- data.frame(from = 1, to = 2, color = rgb(0, 0, 1))
+# grapher(net_config) %>% 
+#   grapher::updateNodes(node_ids = c(1L), net_config = new_config) %>% 
+#   grapher:::logNetwork()
+#   updateNodeColor(color = c(rep(rgb(1, 0, 0, 0.5), n_nodes/2), rep(rgb(0, 1, 0, 0.5), n_nodes/2))) %>% 
+#   splitByLabel(node_labels = node_labels, label_xy = label_xy) %>% 
+#   groupSingletons()
+```
+
+

@@ -71,19 +71,10 @@
   </a>
 </li>
 <li>
-  <a href="../reference/index.html">Reference</a>
+  <a href="../articles/grapher.html">Get started</a>
 </li>
-<li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
-    Articles
-     
-    <span class="caret"></span>
-  </a>
-  <ul class="dropdown-menu" role="menu">
-    <li>
-      <a href="../articles/grapher-intro.html">Introduction to Grapher</a>
-    </li>
-  </ul>
+<li>
+  <a href="../reference/index.html">Reference</a>
 </li>
       </ul>
       
@@ -122,9 +113,27 @@
       <tr>
         
         <td>
+          <p><code><a href="addConfiguration.html">addConfiguration()</a></code> </p>
+        </td>
+        <td><p>Add configuration</p></td>
+      </tr><tr>
+        
+        <td>
           <p><code><a href="addEdges.html">addEdges()</a></code> </p>
         </td>
         <td><p>Add selected edges.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="addLasso.html">addLasso()</a></code> </p>
+        </td>
+        <td><p>Add lass interaction to the widget.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="addNodes.html">addNodes()</a></code> </p>
+        </td>
+        <td><p>Add nodes.</p></td>
       </tr><tr>
         
         <td>
@@ -152,6 +161,13 @@
       </tr><tr>
         
         <td>
+          <p><code><a href="hex2rgba.html">hex2rgba()</a></code> </p>
+        </td>
+        <td><p>hex2rgba
+Converts Hexadecimal colors (with or w/o transparency) to rgba/rgb strings.</p></td>
+      </tr><tr>
+        
+        <td>
           <p><code><a href="logNetwork.html">logNetwork()</a></code> </p>
         </td>
         <td><p>Logs the network to the rendering console. Useful for debugging.</p></td>
@@ -172,13 +188,27 @@
         <td>
           <p><code><a href="removeNodes.html">removeNodes()</a></code> </p>
         </td>
-        <td><p>Remove selected nodes.</p></td>
+        <td><p>#' Generates the JSON configuration of a given grapher object. 
+#' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
+#' @export
+get_json_config &lt;- function(id)
+  # if (!is(g, "grapher")) stop("'get_json_config' expects a grapher object.") 
+  export &lt;- list(id = id, method = "getGraph")
+  callJS()
+
+Remove selected nodes.</p></td>
       </tr><tr>
         
         <td>
           <p><code><a href="splitByLabel.html">splitByLabel()</a></code> </p>
         </td>
         <td><p>Splits nodes by a given labeling</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="toggleLasso.html">toggleLasso()</a></code> </p>
+        </td>
+        <td><p>Disables lass interaction to the widget.</p></td>
       </tr><tr>
         
         <td>
@@ -203,6 +233,12 @@
           <p><code><a href="updateNodeSize.html">updateNodeSize()</a></code> </p>
         </td>
         <td><p>Update the node sizes.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="updateNodes.html">updateNodes()</a></code> </p>
+        </td>
+        <td><p>Update specific nodes.</p></td>
       </tr>
     </tbody>
     </table>

@@ -6,8 +6,7 @@ Date: 2018-07-04
 Authors@R: person("Matt", "Piekenbrock", email = "matt.piekenbrock@gmail.com", role = c("aut", "cre"))
 Maintainer: Matt Piekenbrock <matt.piekenbrock@gmail.com>
 Description: Based on the 'grapher.js' library by Ayasdi, 'grapher' provides an extensive API for 
-  visualizing and interacting with WebGL-accelerated force-directed graphs. Provides additional 
-  support for the 'Mapper' package. 
+  visualizing and interacting with WebGL-accelerated force-directed graphs.
 Encoding: UTF-8
 VignetteBuilder: knitr
 Imports:
@@ -19,5 +18,6 @@ Imports:
     rmarkdown,
     shiny, 
     igraph
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.0
 License: GPL-v3
+Suggests: testthat

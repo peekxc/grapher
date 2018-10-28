@@ -47,8 +47,8 @@ callJS <- function() {
 #' }
 #' Thus, a valid JSON configuration includes minimal set information needed to create a grapher network.
 #' This function returns a list with the following members:
-#'  \code{nodes} := a data.frame w/ members 'x', 'y', 'r', and optionally 'color'
-#'  \code{edges} := a data.frame w/ members 'from', 'to', and optionally 'color'
+#' \code{nodes} := a data.frame w/ members 'x', 'y', 'r', and optionally 'color'
+#' \code{edges} := a data.frame w/ members 'from', 'to', and optionally 'color'
 #' If customization is needed the JSON network object sent to the grapher htmlwidgets, these values can be changed
 #' directly before passing to grapher. This may be useful in the situation where additional data is associated with 
 #' the network is needed on the JavaScript end, i.e. extra node or edge attributes. Alternatively, 
@@ -60,7 +60,7 @@ callJS <- function() {
 getDefaultJsonConfig <- function(network = NULL){
 
   ## If no network was given, return a blank configuration
-  if (missing(network)){ return(list(nodes = data.frame(x=0, y=0, r=5L, color = rgb(0, 0, 0)), links = data.frame(from=0, to=0, color=rgb(0, 0, 0)))) }
+  if (missing(network)){ return(list(nodes = data.frame(id=0L, x=0, y=0, r=5L, color = rgb(0, 0, 0)), links = data.frame(from=0, to=0, color=rgb(0, 0, 0)))) }
   
   ## Create the configuration based on the adjacency matrix
   json_config <- list()
@@ -68,13 +68,18 @@ getDefaultJsonConfig <- function(network = NULL){
   ## Create the node configuration; a layout algorithm is called to smooth initial performance in grapher
   if (length(igraph::V(network)) > 0){
     node_xy <- apply(igraph::layout.auto(network), 2, normalize) ## normalize coordinates to [0, 1]
-    json_config$nodes <- data.frame(x=node_xy[, 1], y=node_xy[, 2], r=5L, color = rgb(0, 0, 0))
+    json_config$nodes <- data.frame(id=0L:(nrow(node_xy)-1L), x=node_xy[, 1], y=node_xy[, 2], r=5L, color = rgb(0, 0, 0))
+  } else {
+    json_config$nodes <- integer(0)
   }
   
   ## Create link configuration
-  if (length(igraph::E(network)) > 0){
-    el <- igraph::as_edgelist(network, names = FALSE)
+  n_edges <- length(igraph::E(network))
+  if (n_edges > 0){
+    el <- igraph::as_edgelist(network, names = FALSE) #id=0:(n_edges-1L),
     json_config$links <- data.frame(from=el[, 1]-1L, to=el[, 2]-1L, color=rgb(0, 0, 0))
+  } else {
+    json_config$links <- integer(0)
   }
   
   ## Return the configuration
@@ -91,36 +96,108 @@ getDefaultJsonConfig <- function(network = NULL){
 #'   callJS()
 #' }
 
+#' Insert nodes. 
+#' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
+#' @param node_config A json node configuration to add to the network.
+#' @description 
+#' Inserts nodes into the grapher instance. If the nodes supplied already exist in the network, no insertion is performed. 
+#' and the properties of pre-existing nodes are not modified. If the node does not exist, it is created with 
+#' the supplied properties. To modify an existing nodes properties by id, see \code{setNodes}.
+#' @seealso getDefaultJsonConfig setNodes
+#' @export
+insertNodes <- function(id, node_config){
+  export <- list(id = id, method = "insertNodes", nodes = jsonlite::toJSON(node_config))
+  callJS()
+}
+
 #' Remove selected nodes. 
 #' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
 #' @param node_ids A vector of node ids to remove. 
 #' @export
 removeNodes = function(id, node_ids){
-  export <- list(id = id, method = "removeNodes", node_ids = node_ids)
+  export <- list(id = id, method = "removeNodes", node_ids = jsonlite::toJSON(node_ids))
   callJS()
 }
 
-#' Add selected edges. 
+#' Sets the node colors. 
 #' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
-#' @param v1 A vector of node ids to connect 'from'. 
-#' @param v2 A vector of node ids to connect 'to'.
-#' @param color A vector of edge colors.
-#' @description Add all edges connecting nodes from 'v1' to 'v2' (or vice versa, since graphs are assumed undirected). 
+#' @param color A vector of hexadecimal color codes. Transparency values supported. 
 #' @export
-addEdges = function(id, v1, v2, color = rgb(0, 0, 0)){
-  new_edges <- jsonlite::toJSON(data.frame(from=pmin.int(v1, v2) - 1L, to = pmax.int(v1, v2) - 1L, color = color))
-  export <- list(id = id, method = "addLinks", links_to_add=new_edges)
+setNodeColor <- function(id, color){
+  color_strings <- hex2rgba(color)
+  export <- list(id = id, method = "setNodeColor", color = color_strings)
   callJS()
 }
 
-#' Remove selected edges. 
+#' Sets the node sizes. 
 #' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
-#' @param v1 A vector of node ids to connect 'from'. 
-#' @param v2 A vector of node ids to connect 'to'.
-#' @description Removes all edges connecting nodes from 'v1' to 'v2' (or vice versa, since graphs are assumed undirected). 
+#' @param r A vector of integers representing the node's relative size.
 #' @export
-removeEdges = function(id, v1, v2){
-  export <- list(id = id, method = "removeLinks", links_to_remove=cbind(from=pmin.int(v1, v2), to = pmax.int(v1, v2)))
+setNodeSize = function(id, r){
+  export <- list(id = id, method = "setNodeSize", size = r)
+  callJS()
+}
+
+#' Set specific node properties. 
+#' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
+#' @param node_ids A vector of node ids to update. 
+#' @param node_config A json configuration of node properties. 
+#' @export
+setNodes <- function(id, node_ids, node_config){
+  export <- list(id = id, method = "setNodes", node_ids = node_ids, net = jsonlite::toJSON(node_config))
+  callJS()
+}
+
+#' Inserts new links. 
+#' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
+#' @param links An (n x 2) matrix (edgelist) of links to add. 
+#' @param color A vector of link colors.
+#' @description Inserts links connecting nodes given in the \code{links} matrix.
+#' @export
+insertLinks = function(id, links, color = rgb(0, 0, 0)){
+  links <- cbind(pmin.int(links[, 1], links[, 2]), pmax.int(links[, 1], links[, 2]))
+  new_links <- jsonlite::toJSON(data.frame(from_id=links[, 1], to_id=links[, 2], color=color))
+  export <- list(id = id, method = "insertLinks", links=new_links)
+  callJS()
+}
+
+#' Remove selected links. 
+#' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
+#' @param links An (n x 2) matrix (edgelist) of links to remove. 
+#' @description Each entry in the 'links' matrix is assumed to be a node id. Order does not matter, i.e. 
+#' \code{removeLinks(id, cbind(0, 1))} is equivalent to \code{removeLinks(..., cbind(1, 0))}.
+#' @export
+removeLinks = function(id, links){
+  links <- cbind(pmin.int(links[, 1], links[, 2]), pmax.int(links[, 1], links[, 2]))
+  export <- list(id = id, method = "removeLinks", links = links)
+  callJS()
+}
+
+#' Sets the link colors. 
+#' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
+#' @param color A vector of hexadecimal color codes. Transparency values are *not* supported. 
+#' @export
+setLinkColor = function(id, color){
+  if (!all(nchar(color) == 7L)){ stop("'setLinkColor' expects a vector of 7-length hexadecimal color codes. Transparency is not supported.") }
+  export <- list(id = id, method = "setLinkColor", color = color)
+  callJS()
+}
+
+#' Add lass interaction to the widget. 
+#' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
+#' @description adds lasso.  
+#' @export
+enableLasso = function(id){
+  export <- list(id = id, method = "enableLasso")
+  callJS()
+}
+
+#' Disables lass interaction to the widget. 
+#' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
+#' @description disables lasso.  
+#' @export
+toggleLasso = function(id){
+  export <- list(id = id, method = "toggleLasso")
   callJS()
 }
 
@@ -142,42 +219,12 @@ hex2rgba <- function(colors){
   }
 }
 
-#' Update specific nodes. 
+#' Add configuration 
 #' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
-#' @param node_ids A vector of node ids to update. 
-#' @param net_config A json 
+#' @param config a list with a potentially new node and/or link configuration.
 #' @export
-updateGrapherNodes <- function(id, node_ids, net_config){
-  export <- list(id = id, method = "updateGrapherNodes", node_ids = node_ids, net = net_config)
-  callJS()
-}
-
-#' Update the node colors. 
-#' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
-#' @param color A vector of hexadecimal color codes. Transparency values supported. 
-#' @export
-updateNodeColor <- function(id, color){
-  color_strings <- hex2rgba(color)
-  export <- list(id = id, method = "updateNodeColor", color = color_strings)
-  callJS()
-}
-
-#' Update the node sizes. 
-#' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
-#' @param r A vector of integers representing the node's relative size.
-#' @export
-updateNodeSize = function(id, r){
-  export <- list(id = id, method = "updateNodeSize", size = r)
-  callJS()
-}
-
-#' Update the edge colors. 
-#' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
-#' @param color A vector of hexadecimal color codes. Transparency values are *not* supported. 
-#' @export
-updateEdgeColor = function(id, color){
-  if (!all(nchar(color) == 7L)){ stop("'updateEdgeColor' expects a vector of 7-length hexadecimal color codes. Transparency is not supported.") }
-  export <- list(id = id, method = "updateEdgeColor", color = color)
+addConfiguration <- function(id, net){
+  export <- list(id = id, method = "addConfiguration", net = jsonlite::toJSON(net))
   callJS()
 }
 
@@ -231,8 +278,18 @@ center <- function(id){
   callJS()
 }
 
+#' Enables d3-forces. 
+#' @param id Either the grapher's htmlwidget instance or, if in a shiny context, the container id the widget is housed in. 
+#' @description Adds a force-directed layout to the network.  
 #' @export
-updateForce <- function(id, ...){
+enableForce <- function(id){
+  export <- list(id = id, method = "enableForce")
+  callJS()
+}
+
+#' Sets D3 force properties
+#' @export
+setForce <- function(id, ...){
   # possible_force_opts <- c("charge", "gravity", "linkStrength", "linkDistance", "friction")
   # invalid_opts <- !names(force_opts) %in% possible_force_opts
   # if (any(invalid_opts)){ warning(sprintf("Detected unknown foce options %s, please use one of: %s", names(force_opts)[which(invalid_opts)], possible_force_opts)) }
@@ -240,7 +297,11 @@ updateForce <- function(id, ...){
   callJS()
 }
 
-getForces <- function(id, forces = "all"){
-  
+#' Retrieve the current network. Shiny only. 
+#' @export
+getNetwork <- function(id){
+  export <- list(id = id, method = "getNetwork")
+  callJS()
 }
+
 
